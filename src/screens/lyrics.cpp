@@ -187,6 +187,18 @@ boost::optional<std::string> downloadLyrics(
 	return result;
 }
 
+LyricsFetchResult downloadLyricsForAsync(
+	const MPD::Song &s,
+	std::shared_ptr<Shared<NC::Buffer>> shared_buffer,
+	std::shared_ptr<std::atomic<bool>> download_stopper,
+	LyricsFetcher *current_fetcher)
+{
+	auto r = downloadLyrics(s, shared_buffer, download_stopper, current_fetcher);
+	if (r)
+		return { true, std::move(*r) };
+	return { false, std::string() };
+}
+
 }
 
 Lyrics::Lyrics()
@@ -220,12 +232,12 @@ void Lyrics::update()
 		if (m_worker.is_ready())
 		{
 			auto lyrics = m_worker.get();
-			if (lyrics)
+			if (lyrics.found)
 			{
 				w.clear();
-				w << Charset::utf8ToLocale(*lyrics);
+				w << Charset::utf8ToLocale(lyrics.lyrics);
 				std::string filename = lyricsFilename(m_song);
-				if (!saveLyrics(filename, *lyrics))
+				if (!saveLyrics(filename, lyrics.lyrics))
 					Statusbar::printf("Couldn't save lyrics as \"%1%\": %2%",
 					                  filename, strerror(errno));
 			}
@@ -292,7 +304,7 @@ void Lyrics::fetch(const MPD::Song &s)
 			m_shared_buffer = std::make_shared<Shared<NC::Buffer>>();
 			m_worker = boost::async(
 				boost::launch::async,
-				std::bind(downloadLyrics,
+				std::bind(downloadLyricsForAsync,
 				          m_song, m_shared_buffer, m_download_stopper, m_fetcher));
 		}
 	}
@@ -446,7 +458,7 @@ boost::optional<std::string> Lyrics::tryTakeConsumerMessage()
 void Lyrics::clearWorker()
 {
 	m_shared_buffer.reset();
-	m_worker = boost::BOOST_THREAD_FUTURE<boost::optional<std::string>>();
+	m_worker = boost::BOOST_THREAD_FUTURE<LyricsFetchResult>();
 }
 
 void Lyrics::stopDownload()

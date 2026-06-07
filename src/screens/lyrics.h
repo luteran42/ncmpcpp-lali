@@ -33,6 +33,12 @@
 #include "song.h"
 #include "utility/shared_resource.h"
 
+struct LyricsFetchResult
+{
+	bool found;
+	std::string lyrics;
+};
+
 struct Lyrics: Screen<NC::Scrollpad>, Tabbable
 {
 	Lyrics();
@@ -99,7 +105,7 @@ private:
 
 	MPD::Song m_song;
 	LyricsFetcher *m_fetcher;
-	boost::BOOST_THREAD_FUTURE<boost::optional<std::string>> m_worker;
+	boost::BOOST_THREAD_FUTURE<LyricsFetchResult> m_worker;
 
 	Shared<ConsumerState> m_consumer_state;
 };

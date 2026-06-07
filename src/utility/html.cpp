@@ -75,6 +75,9 @@ void unescapeHtmlEntities(std::string &s)
 	boost::replace_all(s, "&quot;", "\"");
 	boost::replace_all(s, "&ndash;", "–");
 	boost::replace_all(s, "&mdash;", "—");
+	boost::replace_all(s, "\\\\n", "");
+	boost::replace_all(s, "\\'", "'");
+	boost::replace_all(s, "\\\\\\", "");
 }
 
 void stripHtmlTags(std::string &s)

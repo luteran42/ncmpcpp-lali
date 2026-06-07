@@ -44,7 +44,9 @@ std::istream &operator>>(std::istream &is, LyricsFetcher_ &fetcher)
 {
 	std::string s;
 	is >> s;
-	if (s == "justsomelyrics")
+	if (s == "genius")
+		fetcher = std::make_unique<GeniusFetcher>();
+	else if (s == "justsomelyrics")
 		fetcher = std::make_unique<JustSomeLyricsFetcher>();
 	else if (s == "jahlyrics")
 		fetcher = std::make_unique<JahLyricsFetcher>();
@@ -54,6 +56,10 @@ std::istream &operator>>(std::istream &is, LyricsFetcher_ &fetcher)
 		fetcher = std::make_unique<TekstowoFetcher>();
 	else if (s == "zeneszoveg")
 		fetcher = std::make_unique<ZeneszovegFetcher>();
+	else if (s == "azlyrics")
+		fetcher = std::make_unique<AzLyricsFetcher>();
+	else if (s == "darklyrics")
+		fetcher = std::make_unique<DarkLyricsFetcher>();
 	else if (s == "internet")
 		fetcher = std::make_unique<InternetLyricsFetcher>();
 #ifdef HAVE_TAGLIB_H
@@ -121,7 +127,7 @@ std::vector<std::string> LyricsFetcher::getContent(const char *regex_,
                                                    const std::string &data)
 {
 	std::vector<std::string> result;
-	boost::regex rx(regex_, boost::regex::perl);
+	boost::regex rx(regex_);
 	auto first = boost::sregex_iterator(data.begin(), data.end(), rx);
 	auto last = boost::sregex_iterator();
 	for (; first != last; ++first)
@@ -205,6 +211,42 @@ bool GoogleLyricsFetcher::isURLOk(const std::string &url)
 {
 	return url.find(siteKeyword()) != std::string::npos;
 }
+
+LyricsFetcher::Result DarkLyricsFetcher::fetch(const std::string &artist,
+                                               const std::string &title,
+                                               const MPD::Song &song)
+{
+	current_title = title;
+	return GoogleLyricsFetcher::fetch(artist, title, song);
+}
+void DarkLyricsFetcher::postProcess(std::string &data) const
+{
+	try {
+		// Escape any special regex characters in the song title
+		std::string escaped_title = boost::regex_replace(current_title, boost::regex("[.^$|()\\[\\]{}*+?\\\\]"), "\\\\$&");
+		
+		// Match the <h3> tag with the title, and capture EVERYTHING after it
+		std::string pattern = "(?is)<h3>.*?" + escaped_title + ".*?</h3>(.*)";
+		boost::regex rx(pattern);
+		boost::smatch match;
+		
+		if (boost::regex_search(data, match, rx)) {
+			std::string song_data = match[1].str(); 
+			
+			// Cut off the text as soon as the next song's <h3> tag starts
+			size_t next_h3 = song_data.find("<h3>");
+			if (next_h3 != std::string::npos) {
+				song_data = song_data.substr(0, next_h3);
+			}
+			
+			data = song_data;
+		}
+	} catch (...) {}
+	
+	// Pass it back to the default postProcess to strip the remaining HTML tags
+	LyricsFetcher::postProcess(data);
+}
+
 
 /**********************************************************************/
 
