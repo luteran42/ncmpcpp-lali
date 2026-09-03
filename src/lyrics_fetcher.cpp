@@ -180,7 +180,7 @@ LyricsFetcher::Result GoogleLyricsFetcher::fetch(const std::string &artist,
 	search_str += "+";
 	search_str += Curl::escape(title);
 	
-	std::string google_url = "http://www.google.com/search?hl=en&ie=UTF-8&oe=UTF-8&q=";
+	std::string google_url = "https://www.google.com/search?hl=en&ie=UTF-8&oe=UTF-8&q=";
 	google_url += search_str;
 	google_url += "&btnI=I%27m+Feeling+Lucky";
 	
@@ -193,7 +193,7 @@ LyricsFetcher::Result GoogleLyricsFetcher::fetch(const std::string &artist,
 		return result;
 	}
 
-	auto urls = getContent("<A HREF=\"http://www.google.com/url\\?q=(.*?)\">here</A>", data);
+	auto urls = getContent("(?i)<a\\s+href=\"(?:https?://(?:www\\.)?google\\.[a-z.]+/url\\?q=)?([^\"&>]+).*?\">here</a>", data);
 
 	if (urls.empty() || !isURLOk(urls[0]))
 	{
@@ -203,7 +203,7 @@ LyricsFetcher::Result GoogleLyricsFetcher::fetch(const std::string &artist,
 
 	data = unescapeHtmlUtf8(urls[0]);
 
-	URL = data.c_str();
+	URL = data;
 	return LyricsFetcher::fetch("", "", song);
 }
 
@@ -226,7 +226,7 @@ void DarkLyricsFetcher::postProcess(std::string &data) const
 		std::string escaped_title = boost::regex_replace(current_title, boost::regex("[.^$|()\\[\\]{}*+?\\\\]"), "\\\\$&");
 		
 		// Match the <h3> tag with the title, and capture EVERYTHING after it
-		std::string pattern = "(?is)<h3>.*?" + escaped_title + ".*?</h3>(.*)";
+		std::string pattern = "(?is)<h3>(?:(?!</h3>).)*?" + escaped_title + ".*?</h3>(.*)";
 		boost::regex rx(pattern);
 		boost::smatch match;
 		

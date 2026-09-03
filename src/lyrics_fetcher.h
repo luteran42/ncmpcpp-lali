@@ -62,13 +62,12 @@ struct GoogleLyricsFetcher : public LyricsFetcher
 	virtual Result fetch(const std::string &artist, const std::string &title, const MPD::Song &song);
 	
 protected:
-	virtual const char *urlTemplate() const { return URL; }
+	virtual const char *urlTemplate() const { return URL.c_str(); }
 	virtual const char *siteKeyword() const { return name(); }
 	
 	virtual bool isURLOk(const std::string &url);
 	
-private:
-	const char *URL;
+	std::string URL;
 };
 
 struct JustSomeLyricsFetcher : public GoogleLyricsFetcher
@@ -151,9 +150,6 @@ protected:
 	virtual const char *regex() const override { return ""; }
 	
 	virtual bool isURLOk(const std::string &url) override;
-	
-private:
-	std::string URL;
 };
 
 #ifdef HAVE_TAGLIB_H
