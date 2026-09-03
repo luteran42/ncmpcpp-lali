@@ -1,5 +1,5 @@
 CXX := g++
-CXXFLAGS += -std=c++0x -Wall -Wextra -Wshadow
+CXXFLAGS += -O2 -march=native -pipe -std=c++0x -Wall -Wextra -Wshadow
 CPPFLAGS += $(shell taglib-config --cflags)
 LDFLAGS += $(shell taglib-config --libs)
 
